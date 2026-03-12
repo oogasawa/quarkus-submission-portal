@@ -1,0 +1,108 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: submission-portal
+  namespace: submission-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: submission-portal
+  template:
+    metadata:
+      labels:
+        app: submission-portal
+    spec:
+      serviceAccountName: submission-portal
+      containers:
+        - name: submission-portal
+          image: 192.168.5.23:32000/submission-portal:0.1.0-2603082300
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for vault secrets..."
+              while [ ! -f /vault/secrets/oidc-client-secret ]; do sleep 1; done
+              export SUBMISSION_PORTAL_OIDC_SECRET=$(cat /vault/secrets/oidc-client-secret)
+              exec java -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager -jar /deployments/quarkus-run.jar
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            # Database
+            - name: DB_URL
+              value: "jdbc:postgresql://postgres.submission-portal.svc:5432/submission_portal"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            # OIDC - submission realm (internal cluster URL)
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: "http://keycloak.submission-keycloak.svc:8080/submission-auth/realms/submission"
+            # S3 / MinIO
+            - name: S3_ENDPOINT
+              value: "http://minio.minio.svc:9000"
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: S3_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: S3_SECRET_KEY
+            - name: S3_BUCKET
+              value: "submission-portal"
+            # Unlimited users (no session limit)
+            - name: SUBPORTAL_UNLIMITED_USERS
+              value: "testadmin,devteam"
+          volumeMounts:
+            - name: vault-secrets
+              mountPath: /vault/secrets
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /submission-portal/q/health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /submission-portal/q/health/ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: vault-secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: submission-portal-spc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: submission-portal
+  namespace: submission-portal
+spec:
+  selector:
+    app: submission-portal
+  ports:
+    - port: 8080
+      targetPort: 8080

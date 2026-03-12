@@ -1,0 +1,91 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: submission-portal
+  namespace: submission-portal
+---
+# Role: manage user Pods, Services, PVCs, ConfigMaps in user-pods namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: submission-portal-pod-manager
+  namespace: user-pods
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "persistentvolumeclaims", "configmaps"]
+    verbs: ["create", "delete", "get", "list", "watch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: submission-portal-pod-manager-binding
+  namespace: user-pods
+subjects:
+  - kind: ServiceAccount
+    name: submission-portal
+    namespace: submission-portal
+roleRef:
+  kind: Role
+  name: submission-portal-pod-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role: manage HTTPRoutes and SecurityPolicies in submission-keycloak namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: submission-portal-route-manager
+  namespace: submission-keycloak
+rules:
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["httproutes"]
+    verbs: ["create", "delete", "get", "list"]
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["securitypolicies"]
+    verbs: ["create", "delete", "get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: submission-portal-route-manager-binding
+  namespace: submission-keycloak
+subjects:
+  - kind: ServiceAccount
+    name: submission-portal
+    namespace: submission-portal
+roleRef:
+  kind: Role
+  name: submission-portal-route-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# ClusterRole: read nodes, list PVs (for cluster resource summary and NFS PV management)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: submission-portal-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "persistentvolumeclaims", "resourcequotas"]
+    verbs: ["list", "create", "delete", "get"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: submission-portal-node-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: submission-portal
+    namespace: submission-portal
+roleRef:
+  kind: ClusterRole
+  name: submission-portal-node-reader
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title} - DDBJ Submission Portal</title>
+    <link rel="stylesheet" href="{bp}/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>DDBJ Submission Portal</h1>
+            <div class="header-right">
+                <span class="username">{userId}</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-title">
+        <h2>{title}</h2>
+    </div>
+
+    <main class="container">
+        <div class="section">
+            <div class="section-header">
+                <h3>{fileCount} {#if lang == "en"}files{#else}件{/if} &mdash; {totalSize}</h3>
+            </div>
+            {#if files.size > 0}
+            <div class="file-browser">
+                {#for f in files}
+                <div class="file-browser-row">
+                    <span class="file-browser-name">{f}</span>
+                </div>
+                {/for}
+            </div>
+            {#else}
+            <div class="section-body">
+                <p class="empty-state">{#if lang == "en"}No files.{#else}ファイルはありません。{/if}</p>
+            </div>
+            {/if}
+        </div>
+    </main>
+</body>
+</html>

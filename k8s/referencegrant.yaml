@@ -1,0 +1,16 @@
+# Allow HTTPRoutes in submission-keycloak namespace to reference
+# Services in user-pods namespace (for session routing).
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-submission-keycloak
+  namespace: user-pods
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: submission-keycloak
+  to:
+    - group: ""
+      kind: Service

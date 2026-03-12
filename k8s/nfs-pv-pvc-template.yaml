@@ -1,0 +1,56 @@
+# NFS PV/PVC template for submission-portal user storage.
+# Replace ${USER_ID} with the actual user ID (e.g. oga-test5).
+#
+# NFS server: 192.168.5.20 (stonefly520)
+# Base path:  /Public/submission-portal-data/${USER_ID}
+#
+# Before creating PV/PVC, ensure the user directory exists on NFS:
+#   mkdir -p /mnt/stonefly520/submission-portal-data/${USER_ID}
+#   chown 1000:1000 /mnt/stonefly520/submission-portal-data/${USER_ID}
+#
+# These are normally auto-created by the submission-portal controller.
+# This file is for reference / manual recovery only.
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: subportal-data-${USER_ID}-nfs-k8s
+  labels:
+    app: submission-portal-user
+    managed-by: submission-portal
+    user: ${USER_ID}
+    storage-type: nfs-k8s
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: subportal-data-${USER_ID}-nfs-k8s
+    volumeAttributes:
+      server: "192.168.5.20"
+      share: "/Public/submission-portal-data/${USER_ID}"
+  mountOptions:
+    - nfsvers=4
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: subportal-data-${USER_ID}-nfs-k8s
+  namespace: user-pods
+  labels:
+    app: submission-portal-user
+    managed-by: submission-portal
+    user: ${USER_ID}
+    storage-type: nfs-k8s
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: subportal-data-${USER_ID}-nfs-k8s
+  resources:
+    requests:
+      storage: 1Ti

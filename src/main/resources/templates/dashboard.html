@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="{lang}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDBJ Submission Portal</title>
+    <link rel="stylesheet" href="{bp}/css/style.css">
+    {#if hasStarting == "true" || (creating != "" && (pvcInfo.get(creating) == null || pvcInfo.get(creating).get("exists") != "true"))}
+    <meta http-equiv="refresh" content="5">
+    {/if}
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <h1>DDBJ Submission Portal</h1>
+            <div class="header-right">
+                <span class="username">{userId}</span>
+                <a href="{bp}/logout" class="btn btn-outline">{#if lang == "en"}Logout{#else}ログアウト{/if}</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="page-title">
+        <h2>{#if lang == "en"}Dashboard{#else}ダッシュボード{/if}</h2>
+    </div>
+
+    <main class="container">
+
+        <!-- Storage -->
+        <div class="storage-boxes">
+            <a class="storage-box" href="{bp}/storage/files?type=s3upload" target="_blank">
+                <div class="storage-box-title">S3 / {#if lang == "en"}Upload{#else}アップロード{/if}</div>
+                <div class="storage-box-value">{s3UploadFiles} <span class="storage-box-unit">{#if lang == "en"}files{#else}件{/if}</span></div>
+                <div class="storage-box-sub">{s3UploadSize}</div>
+            </a>
+            <a class="storage-box" href="{bp}/storage/files?type=s3public" target="_blank">
+                <div class="storage-box-title">S3 / {#if lang == "en"}Public{#else}公開{/if}</div>
+                <div class="storage-box-value">{s3PublicFiles} <span class="storage-box-unit">{#if lang == "en"}files{#else}件{/if}</span></div>
+                <div class="storage-box-sub">{s3PublicSize}</div>
+            </a>
+            <a class="storage-box" href="{bp}/storage/browse" target="_blank">
+                <div class="storage-box-title">{#if lang == "en"}File / Upload{#else}ファイル / アップロード{/if}</div>
+                {#if creating == "nfs-k8s"}
+                <div class="storage-box-preparing"><span class="spinner-sm"></span> {#if lang == "en"}Preparing…{#else}準備中…{/if}</div>
+                {#else}
+                <div class="storage-box-value">{fsUploadFiles} <span class="storage-box-unit">{#if lang == "en"}files{#else}件{/if}</span></div>
+                <div class="storage-box-sub">{fsUploadSize}</div>
+                {/if}
+            </a>
+            <a class="storage-box" href="{bp}/storage/files?type=fspublic" target="_blank">
+                <div class="storage-box-title">{#if lang == "en"}File / Public{#else}ファイル / 公開{/if}</div>
+                <div class="storage-box-value">{fsPublicFiles} <span class="storage-box-unit">{#if lang == "en"}files{#else}件{/if}</span></div>
+                <div class="storage-box-sub">{fsPublicSize}</div>
+            </a>
+        </div>
+
+        <!-- Submission Tools -->
+        <div class="section">
+            <div class="section-header">
+                <h3>{#if lang == "en"}Submission Tools{#else}登録ツール{/if}</h3>
+            </div>
+
+            {#if sessions.size > 0}
+            <div class="session-list">
+                {#for s in sessions}
+                <div class="session-item">
+                    <div class="session-info">
+                        <span class="session-tool-name">{s.toolName}</span>
+                        {#if s.state.name() == "STARTING" || s.state.name() == "CREATING"}
+                        <span class="badge badge-starting"><span class="spinner-sm"></span> {#if lang == "en"}Starting…{#else}起動中…{/if}</span>
+                        {#else}
+                        <span class="badge badge-{s.state.name().toLowerCase()}">{s.state.name()}</span>
+                        {/if}
+                        <span class="session-pod-name">{s.podName}</span>
+                    </div>
+                    <div class="session-actions">
+                        {#if s.state.name() == "READY"}
+                        <a href="{s.accessUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">{#if lang == "en"}Open{#else}開く{/if}</a>
+                        {/if}
+                        <form method="post" action="{bp}/session/stop" style="margin:0;">
+                            <input type="hidden" name="sessionId" value="{s.sessionId}">
+                            <button type="submit" class="btn btn-danger">{#if lang == "en"}Stop{#else}停止{/if}</button>
+                        </form>
+                    </div>
+                </div>
+                {/for}
+            </div>
+            {/if}
+
+            {#if tools.size > 0}
+            <div class="tool-grid">
+                {#for t in tools}
+                <div class="tool-card">
+                    <div>
+                        <h4>{t.displayName()}</h4>
+                        <p>{t.description()}</p>
+                    </div>
+                    <form method="post" action="{bp}/session/start">
+                        <input type="hidden" name="tool" value="{t.name()}">
+                        <button type="submit" class="btn btn-primary">{#if lang == "en"}Launch{#else}起動{/if}</button>
+                    </form>
+                </div>
+                {/for}
+            </div>
+            {#else}
+            <div class="section-body">
+                <p class="empty-state">{#if lang == "en"}No tools available.{#else}利用可能なツールはありません。{/if}</p>
+            </div>
+            {/if}
+        </div>
+
+        <!-- Past Registrations (INSDC) -->
+        <div class="section">
+            <div class="section-header">
+                <h3>{#if lang == "en"}Past Registrations (INSDC){#else}過去の登録 (INSDC){/if}</h3>
+            </div>
+            {#if registrations.size > 0}
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Accession</th>
+                        <th>Type</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>{#if lang == "en"}Submitted Date{#else}登録日{/if}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {#for r in registrations}
+                    <tr>
+                        <td>{r.accession}</td>
+                        <td>{r.submissionType}</td>
+                        <td>{r.title}</td>
+                        <td>{r.status}</td>
+                        <td>{r.submittedAt}</td>
+                    </tr>
+                    {/for}
+                </tbody>
+            </table>
+            {#else}
+            <div class="section-body">
+                <p class="empty-state">{#if lang == "en"}No registrations yet.{#else}登録データはまだありません。{/if}</p>
+            </div>
+            {/if}
+        </div>
+
+    </main>
+</body>
+</html>

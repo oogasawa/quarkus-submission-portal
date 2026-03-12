@@ -1,0 +1,38 @@
+# Temporary Pod to create a user directory on the NFS server.
+# Replace ${USER_ID} with the actual user ID (e.g. oga-test5).
+#
+# Alternatively, create the directory directly from any compute node:
+#   mkdir -p /mnt/stonefly520/submission-portal-data/${USER_ID}
+#   chown 1000:1000 /mnt/stonefly520/submission-portal-data/${USER_ID}
+#
+# This Pod is normally auto-created by the submission-portal controller.
+# This file is for reference / manual recovery only.
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-k8s-init-${USER_ID}
+  namespace: user-pods
+  labels:
+    app: submission-portal-nfs-init
+    managed-by: submission-portal
+spec:
+  restartPolicy: Never
+  volumes:
+    - name: nfs-base
+      nfs:
+        server: "192.168.5.20"
+        path: "/Public/submission-portal-data"
+  containers:
+    - name: init
+      image: busybox:1.36
+      command:
+        - sh
+        - -c
+        - |
+          mkdir -p /mnt/nfs-base/${USER_ID} && \
+          chown 1000:1000 /mnt/nfs-base/${USER_ID} && \
+          echo "Directory ready for ${USER_ID}"
+      volumeMounts:
+        - name: nfs-base
+          mountPath: /mnt/nfs-base

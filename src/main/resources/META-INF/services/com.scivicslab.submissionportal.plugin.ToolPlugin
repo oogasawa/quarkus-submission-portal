@@ -1,0 +1,4 @@
+com.scivicslab.submissionportal.plugin.SraPlugin
+com.scivicslab.submissionportal.plugin.AssemblyPlugin
+com.scivicslab.submissionportal.plugin.ExpressionDataPlugin
+com.scivicslab.submissionportal.plugin.FileBrowserPlugin
