@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# NIG supercomputer k0s cluster overlay (Blue/Green: unit1/unit2)
+# Usage: kubectl apply -k overlays/nig
+
+namespace: submission-portal
+
+resources:
+# --- unit1 (Blue) ---
+# Gateway
+- gateway-unit1.yaml
+# PVCs
+- pvc-postgres-unit1.yaml
+# SecretProviderClass
+- spc-submission-portal-unit1.yaml
+- spc-postgres-unit1.yaml
+# Deployments and Services
+- postgres-unit1-deployment.yaml
+- postgres-unit1-service.yaml
+- submission-portal-unit1-deployment.yaml
+- submission-portal-unit1-service.yaml
+
+# --- unit2 (Green) ---
+# PVCs
+- pvc-postgres-unit2.yaml
+# SecretProviderClass
+- spc-submission-portal-unit2.yaml
+- spc-postgres-unit2.yaml
+# Deployments and Services
+- postgres-unit2-deployment.yaml
+- postgres-unit2-service.yaml
+- submission-portal-unit2-deployment.yaml
+- submission-portal-unit2-service.yaml
+
+# --- Shared ---
+- rbac.yaml
+- networkpolicy.yaml
+
+labels:
+- pairs:
+    env: nig
+    project: submission-portal
+  includeSelectors: false
+
+# NIG cluster container images
+images:
+- name: submission-portal
+  newName: 10.96.0.100:5000/submission-portal
+  newTag: 0.1.0-2603251700
+- name: postgres
+  newName: 10.96.0.100:5000/postgres
+  newTag: "17"
+- name: busybox
+  newName: 10.96.0.100:5000/busybox
+  newTag: "1.36"

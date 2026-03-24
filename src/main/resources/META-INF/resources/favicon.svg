@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="4" fill="#ffffff"/>
+  <!-- DDBJ double helix mark -->
+  <path d="M11 3 C6 8, 6 12, 14 16 C22 20, 22 24, 17 29" stroke="#e8a735" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <path d="M15 3 C10 8, 10 12, 18 16 C26 20, 26 24, 21 29" stroke="#333333" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

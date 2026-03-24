@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-unit1
+  namespace: submission-portal
+  labels:
+    app: postgres
+    unit: unit1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+      unit: unit1
+  template:
+    metadata:
+      labels:
+        app: postgres
+        unit: unit1
+    spec:
+      serviceAccountName: submission-portal
+      securityContext:
+        fsGroup: 999
+      initContainers:
+      - name: init-permissions
+        image: busybox
+        command:
+        - /bin/sh
+        - -c
+        - |
+          chown -R 999:999 /var/lib/postgresql/data
+          chmod 700 /var/lib/postgresql/data
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      containers:
+      - name: postgres
+        image: postgres
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for vault secrets..."
+          while [ ! -f /vault/secrets/db-username ]; do sleep 1; done
+          while [ ! -f /vault/secrets/db-password ]; do sleep 1; done
+          echo "Vault secrets available"
+          export POSTGRES_USER=$(cat /vault/secrets/db-username)
+          export POSTGRES_PASSWORD=$(cat /vault/secrets/db-password)
+          exec docker-entrypoint.sh postgres
+        env:
+        - name: POSTGRES_DB
+          value: submission_portal
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        ports:
+        - containerPort: 5432
+          name: postgres
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: vault-secrets
+          mountPath: /vault/secrets
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -d submission_portal
+          initialDelaySeconds: 60
+          periodSeconds: 60
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -d submission_portal
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-unit1-pvc
+      - name: vault-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: postgres-spc-unit1

@@ -390,6 +390,7 @@ public class DashboardResource {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>DDBJ Submission Portal</title>
+            <link rel="icon" type="image/svg+xml" href="{{BASE}}/favicon.svg">
             <link rel="stylesheet" href="{{BASE}}/css/style.css">
             </head>
             <body>

@@ -1,0 +1,28 @@
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: submission-portal-spc-unit2
+  namespace: submission-portal
+  labels:
+    unit: unit2
+spec:
+  provider: vault
+  parameters:
+    vaultAddress: "http://vault.vault.svc.cluster.local:8200"
+    roleName: "submission-portal-role"
+    objects: |
+      - objectName: "oidc-client-secret"
+        secretPath: "submission-portal/data/oidc-client"
+        secretKey: "client-secret"
+      - objectName: "s3-access-key"
+        secretPath: "submission-portal/data/minio"
+        secretKey: "access-key"
+      - objectName: "s3-secret-key"
+        secretPath: "submission-portal/data/minio"
+        secretKey: "secret-key"
+      - objectName: "db-username"
+        secretPath: "submission-portal/data/db"
+        secretKey: "username"
+      - objectName: "db-password"
+        secretPath: "submission-portal/data/db"
+        secretKey: "password"

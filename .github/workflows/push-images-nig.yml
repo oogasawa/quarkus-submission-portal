@@ -1,0 +1,81 @@
+name: Build and Push Submission-Portal Images to NIG Registry
+
+on:
+  workflow_dispatch:
+    inputs:
+      submission_portal_tag:
+        description: 'submission-portal image tag (e.g. 0.1.0-2603251400)'
+        required: true
+      build_submission_portal:
+        description: 'Build submission-portal'
+        type: boolean
+        default: true
+      build_postgres:
+        description: 'Push postgres:17'
+        type: boolean
+        default: false
+      build_busybox:
+        description: 'Push busybox:1.36'
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: 10.96.0.100:5000
+
+jobs:
+  submission-portal:
+    if: ${{ inputs.build_submission_portal }}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build with Maven
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            maven:3.9-eclipse-temurin-21 \
+            mvn package -DskipTests -f /workspace/pom.xml
+
+      - name: Push submission-portal with Kaniko
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            gcr.io/kaniko-project/executor:latest \
+            --context=/workspace \
+            --dockerfile=/workspace/Dockerfile \
+            --destination=${{ env.REGISTRY }}/submission-portal:${{ inputs.submission_portal_tag }} \
+            --insecure
+
+  postgres:
+    if: ${{ inputs.build_postgres }}
+    runs-on: self-hosted
+    steps:
+      - name: Create Dockerfile and push postgres:17 with Kaniko
+        run: |
+          mkdir -p ${{ github.workspace }}/kaniko-postgres
+          echo "FROM postgres:17" > ${{ github.workspace }}/kaniko-postgres/Dockerfile
+          docker run --rm \
+            -v ${{ github.workspace }}/kaniko-postgres:/workspace \
+            gcr.io/kaniko-project/executor:latest \
+            --context dir:///workspace \
+            --dockerfile /workspace/Dockerfile \
+            --destination=${{ env.REGISTRY }}/postgres:17 \
+            --insecure
+
+  busybox:
+    if: ${{ inputs.build_busybox }}
+    runs-on: self-hosted
+    steps:
+      - name: Create Dockerfile and push busybox:1.36 with Kaniko
+        run: |
+          mkdir -p ${{ github.workspace }}/kaniko-busybox
+          echo "FROM busybox:1.36" > ${{ github.workspace }}/kaniko-busybox/Dockerfile
+          docker run --rm \
+            -v ${{ github.workspace }}/kaniko-busybox:/workspace \
+            gcr.io/kaniko-project/executor:latest \
+            --context dir:///workspace \
+            --dockerfile /workspace/Dockerfile \
+            --destination=${{ env.REGISTRY }}/busybox:1.36 \
+            --insecure
