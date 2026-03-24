@@ -36,14 +36,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             maven:3.9-eclipse-temurin-21 \
-            bash -c "mvn install:install-file \
-              -Dfile=/workspace/lib/pojo-actor-3.0.0-SNAPSHOT.jar \
-              -DgroupId=com.scivicslab \
-              -DartifactId=pojo-actor \
-              -Dversion=3.0.0-SNAPSHOT \
-              -Dpackaging=jar \
-              -DgeneratePom=true && \
-            mvn package -DskipTests -f /workspace/pom.xml"
+            mvn package -DskipTests -f /workspace/pom.xml
 
       - name: Push submission-portal with Kaniko
         run: |
